@@ -6,6 +6,10 @@ const cors = require('cors'); // 👈 ADD THIS
 const authRoutes = require('./routes/auth');
 const designationRoutes = require('./routes/designation');
 const personRoutes = require('./routes/person');
+const galleryRoutes = require('./routes/gallery');
+const releaseRoutes = require('./routes/release');
+const inquiryRoutes = require('./routes/inquiry');
+const statsRoutes = require('./routes/stats');
 
 const app = express();
 
@@ -17,6 +21,10 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/designations', designationRoutes);
 app.use('/api/persons', personRoutes);
+app.use('/api/galleries', galleryRoutes);
+app.use('/api/releases', releaseRoutes);
+app.use('/api/inquiries', inquiryRoutes);
+app.use('/api/stats', statsRoutes);
 
 // Connect to MongoDB
 mongoose.connect(process.env.DATABASE_URL, {
