@@ -16,6 +16,13 @@ const app = express();
 // Middleware
 app.use(cors()); // 👈 ENABLE CORS
 app.use(express.json());
+const path = require('path');
+const fs = require('fs');
+
+// ensure uploads folder exists and serve it statically
+const uploadsPath = path.join(__dirname, 'uploads');
+fs.mkdirSync(uploadsPath, { recursive: true });
+app.use('/uploads', express.static(uploadsPath));
 
 // Routes
 app.use('/api/auth', authRoutes);

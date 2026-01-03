@@ -1,6 +1,6 @@
 const express = require('express');
 const multer = require('multer');
-const cloudinary = require('../config/cloudinary');
+const fs = require('fs');
 const path = require('path');
 const {
   getReleases,
@@ -12,26 +12,23 @@ const {
 
 const router = express.Router();
 
-// Multer config for memory storage
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, '..', 'uploads');
+fs.mkdirSync(uploadsDir, { recursive: true });
 
-// Helper function to upload to Cloudinary
-const uploadToCloudinary = (buffer, mimetype, originalname) => {
-  const resourceType = mimetype.startsWith('image/') ? 'image' : 'raw';
-  const options = { resource_type: resourceType, access_mode: 'public', type: 'upload' };
-  if (resourceType === 'raw') {
-    const parsed = path.parse(originalname);
-    options.public_id = parsed.name;
-    options.format = parsed.ext.slice(1); // remove the dot
+// Multer config for disk storage into `uploads/`
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadsDir);
+  },
+  filename: function (req, file, cb) {
+    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    cb(null, file.fieldname + '-' + unique + ext);
   }
-  return new Promise((resolve, reject) => {
-    cloudinary.uploader.upload_stream(options, (error, result) => {
-      if (error) reject(error);
-      else resolve(result.secure_url);
-    }).end(buffer);
-  });
-};
+});
+
+const upload = multer({ storage });
 
 // GET /api/releases - Get all releases
 router.get('/', getReleases);
@@ -44,7 +41,8 @@ router.post('/', upload.single('Release_photo'), async (req, res) => {
   try {
     let Release_photo = req.body.Release_photo; // If URL provided directly
     if (req.file) {
-      Release_photo = await uploadToCloudinary(req.file.buffer, req.file.mimetype, req.file.originalname);
+      // store relative URL path for the uploaded file
+      Release_photo = '/uploads/' + req.file.filename;
     }
 
     const release = new (require('../models/Release'))({
@@ -70,7 +68,7 @@ router.put('/:id', upload.single('Release_photo'), async (req, res) => {
     release.Release_name = req.body.Release_name || release.Release_name;
     
     if (req.file) {
-      release.Release_photo = await uploadToCloudinary(req.file.buffer, req.file.mimetype, req.file.originalname);
+      release.Release_photo = '/uploads/' + req.file.filename;
     } else if (req.body.Release_photo) {
       release.Release_photo = req.body.Release_photo;
     }
